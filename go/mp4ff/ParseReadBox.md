@@ -1,4 +1,4 @@
- Out-of-Memory Crash in `ParseReadBox` due to Unchecked Slice Allocation in `mp4/senc.go`
+### Out-of-Memory Crash in `ParseReadBox` due to Unchecked Slice Allocation in `mp4/senc.go`
 
 **Describe the Bug**
 
@@ -11,21 +11,21 @@ During fuzzing with [`go-fuzz`](https://github.com/dvyukov/go-fuzz) on `mp4ff`, 
 Steps to reproduce the crash:
 
 1. Clone a public corpus:
-    
+   
 
 ```bash
 git clone https://github.com/strongcourage/fuzzing-corpus.git
 ```
 
 2. Run the fuzzer:
-    
+   
 
 ```bash
 go-fuzz -bin=./mp4-fuzz.zip -workdir=workdir
 ```
 
 3. Observe crash in log:
-    
+   
 
 ```
 fatal error: runtime: out of memory
@@ -37,7 +37,7 @@ github.com/Eyevinn/mp4ff/mp4.(*SencBox).ParseReadBox
 ```
 
 4. Minimal reproduction in Go:
-    
+   
 
 ```go
 package main
@@ -90,11 +90,11 @@ When `SampleCount` is large or malformed, it leads to allocating >10GB of memory
 **Environment**
 
 - Module: `github.com/Eyevinn/mp4ff v0.48.0`
-    
+  
 - Platform: Docker container running `go-fuzz`
-    
+  
 - Go version: go1.20+
-    
+  
 - Fuzzer: `go-fuzz`
-    
+  
 
