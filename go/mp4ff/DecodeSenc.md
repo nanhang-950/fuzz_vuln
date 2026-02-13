@@ -87,7 +87,7 @@ The function should validate input data length before slicing to prevent out-of-
 
 **Environment**
 
-- Module: `github.com/Eyevinn/mp4ff v0.48.0`
+- Module: `github.com/Eyevinn/mp4ff v0.50.0`
 - Platform: Docker container running `go-fuzz`
 - Go version: go1.20+
 - Fuzzer: `go-fuzz`
