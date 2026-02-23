@@ -1,3 +1,35 @@
+## project address
+
+project：https://chromium.googlesource.com/webm/libvpx
+
+version：v1.16.0
+
+## info
+
+OS：Ubuntu22.04 TLS
+
+Build: 
+
+```shell
+git clone https://chromium.googlesource.com/webm/libvpx
+cd libvpx
+
+mkdir build && cd build
+
+../configure \
+    --disable-unit-tests \
+    --size-limit=12288x12288 \
+    --extra-cflags="-fsanitize=fuzzer-no-link -DVPX_MAX_ALLOCABLE_MEMORY=1073741824" \
+    --disable-webm-io \
+    --enable-debug \
+    --enable-vp8-encoder \
+    --enable-vp9-encoder
+
+make -j$(nproc)
+```
+
+## fuzzer
+
 **目标**: 图像格式转换和处理
 
 **测试内容**:
@@ -14,8 +46,14 @@
 - 前 32 字节: 配置头
 - 剩余数据: YUV 像素数据
 
+## Poc
+
+https://github.com/nanhang-950/fuzz_vuln/blob/main/libvpx/fuzzers/crash-883ef121deb9e622bd4b1bfc5a7b634047492381
+
+## ASAN Info
+
 ```shell
-❯ ./vpx_image_fuzzer
+❯ ./vpx_image_fuzzer ./crash-883ef121deb9e622bd4b1bfc5a7b634047492381
 INFO: Running with entropic power schedule (0xFF, 100).
 INFO: Seed: 728820164
 INFO: Loaded 1 modules   (215 inline 8-bit counters): 215 [0x651e408a5768, 0x651e408a583f),

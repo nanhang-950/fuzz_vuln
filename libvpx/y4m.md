@@ -1,19 +1,8 @@
-**目标**: Y4M (YUV4MPEG2) 格式解析
-
-**测试内容**:
-
-- Y4M 文件头解析
-- 帧头解析
-- 色彩空间参数
-- 交错模式
-- 帧率和宽高比
-- 畸形头部处理
-
 ## project address
 
-**libvpx** 是 Google 的 **WebM 项目的核心库**，提供 **VP8 和 VP9 视频编解码**功能。
+project：https://chromium.googlesource.com/webm/libvpx
 
-**官方网站**：https://chromium.googlesource.com/webm/libvpx
+version：v1.16.0
 
 ## info
 
@@ -25,10 +14,8 @@ Build:
 git clone https://chromium.googlesource.com/webm/libvpx
 cd libvpx
 
-# 创建构建目录
 mkdir build && cd build
 
-# 配置 (启用 fuzzing 支持)
 ../configure \
     --disable-unit-tests \
     --size-limit=12288x12288 \
@@ -38,17 +25,21 @@ mkdir build && cd build
     --enable-vp8-encoder \
     --enable-vp9-encoder
 
-# 编译
 make -j$(nproc)
-
-clang -fsanitize=fuzzer,address,undefined \
-      -I./libvpx -I./libvpx/build \
-      vpx_image_fuzzer.c \
-      -o vpx_image_fuzzer \
-      ./libvpx/build/libvpx.a -lpthread -lm
 ```
 
 ## fuzzer
+
+**目标**: Y4M (YUV4MPEG2) 格式解析
+
+**测试内容**:
+
+- Y4M 文件头解析
+- 帧头解析
+- 色彩空间参数
+- 交错模式
+- 帧率和宽高比
+- 畸形头部处理
 
 ```c
 /*
@@ -368,7 +359,7 @@ https://github.com/z1r00/fuzz_vuln/blob/main/yasm/stack-overflow/parse_expr1/id:
 ## ASAN Info
 
 ```
-❯ ./vpx_y4m_fuzzer
+❯ ./vpx_y4m_fuzzer ./crash-a8816fc673feac79c1d9a04fc160c46c5865396c
 INFO: Running with entropic power schedule (0xFF, 100).
 INFO: Seed: 1753147002
 INFO: Loaded 1 modules   (248 inline 8-bit counters): 248 [0x64baa92f4910, 0x64baa92f4a08),
@@ -405,9 +396,3 @@ MS: 5 ShuffleBytes-ChangeBit-InsertRepeatedBytes-InsertRepeatedBytes-CopyPart-; 
 artifact_prefix='./'; Test unit written to ./crash-a8816fc673feac79c1d9a04fc160c46c5865396c
 Base64: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa
 ```
-
-
-
-## Reference
-
-https://github.com/z1r00/fuzz_vuln/blob/main/yasm/stack-overflow/parse_expr1/readme.md

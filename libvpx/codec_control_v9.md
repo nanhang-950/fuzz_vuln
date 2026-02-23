@@ -1,5 +1,59 @@
+## project address
+
+project：https://chromium.googlesource.com/webm/libvpx
+
+version：v1.16.0
+
+## info
+
+OS：Ubuntu22.04 TLS
+
+Build: 
+
+```shell
+git clone https://chromium.googlesource.com/webm/libvpx
+cd libvpx
+
+mkdir build && cd build
+
+../configure \
+    --disable-unit-tests \
+    --size-limit=12288x12288 \
+    --extra-cflags="-fsanitize=fuzzer-no-link -DVPX_MAX_ALLOCABLE_MEMORY=1073741824" \
+    --disable-webm-io \
+    --enable-debug \
+    --enable-vp8-encoder \
+    --enable-vp9-encoder
+
+make -j$(nproc)
 ```
-❯ ./vpx_codec_control_fuzzer_vp9
+
+## fuzzer
+
+**目标**: 编解码器控制接口
+
+**测试内容**:
+
+- VP8/VP9 编码器控制参数
+- VP8/VP9 解码器控制参数
+- 无效控制 ID 处理
+- 参数类型不匹配
+- 极端参数值
+- 控制序列组合
+
+**变体**:
+
+- `vpx_codec_control_fuzzer_vp8` - VP8 专用
+- `vpx_codec_control_fuzzer_vp9` - VP9 专用
+
+## Poc
+
+https://github.com/nanhang-950/fuzz_vuln/blob/main/libvpx/fuzzers/crash-883ef121deb9e622bd4b1bfc5a7b634047492381
+
+## ASAN Info
+
+```
+❯ ./vpx_codec_control_fuzzer_vp9 ./crash-33724cd6b286c15eb766589eeaaea79e90ff0691
 INFO: Running with entropic power schedule (0xFF, 100).
 INFO: Seed: 3776836915
 INFO: Loaded 1 modules   (105 inline 8-bit counters): 105 [0x59f52e3e9588, 0x59f52e3e95f1),

@@ -1,9 +1,34 @@
-| 漏洞类型        | 奖金范围      |
-| --------------- | ------------- |
-| 普通崩溃        | 0（无利用性） |
-| 可控堆溢出      | 几百~几千美元 |
-| 可利用 RCE      | $5000+        |
-| Chrome 链式利用 | $10k-$30k+    |
+## project address
+
+project：https://chromium.googlesource.com/webm/libvpx
+
+version：v1.16.0
+
+## info
+
+OS：Ubuntu22.04 TLS
+
+Build: 
+
+```shell
+git clone https://chromium.googlesource.com/webm/libvpx
+cd libvpx
+
+mkdir build && cd build
+
+../configure \
+    --disable-unit-tests \
+    --size-limit=12288x12288 \
+    --extra-cflags="-fsanitize=fuzzer-no-link -DVPX_MAX_ALLOCABLE_MEMORY=1073741824" \
+    --disable-webm-io \
+    --enable-debug \
+    --enable-vp8-encoder \
+    --enable-vp9-encoder
+
+make -j$(nproc)
+```
+
+## fuzzer
 
 **目标**: 编解码器控制接口
 
@@ -21,37 +46,14 @@
 - `vpx_codec_control_fuzzer_vp8` - VP8 专用
 - `vpx_codec_control_fuzzer_vp9` - VP9 专用
 
-```shell
-git clone https://chromium.googlesource.com/webm/libvpx
-cd libvpx
+## Poc
 
-# 创建构建目录
-mkdir build && cd build
+https://github.com/nanhang-950/fuzz_vuln/blob/main/libvpx/fuzzers/crash-883ef121deb9e622bd4b1bfc5a7b634047492381
 
-# 配置 (启用 fuzzing 支持)
-../configure \
-    --disable-unit-tests \
-    --size-limit=12288x12288 \
-    --extra-cflags="-fsanitize=fuzzer-no-link -DVPX_MAX_ALLOCABLE_MEMORY=1073741824" \
-    --disable-webm-io \
-    --enable-debug \
-    --enable-vp8-encoder \
-    --enable-vp9-encoder
-
-# 编译
-make -j$(nproc)
-
-clang -fsanitize=fuzzer,address,undefined \
-      -I./libvpx -I./libvpx/build \
-      vpx_image_fuzzer.c \
-      -o vpx_image_fuzzer \
-      ./libvpx/build/libvpx.a -lpthread -lm
-```
-
-
+## ASAN Info
 
 ```
-❯ ./vpx_codec_control_fuzzer_vp8
+❯ ./vpx_codec_control_fuzzer_vp8 ./crash-d3a1ed54d420320f1049ec89a1cd4e850b4f7142
 INFO: Running with entropic power schedule (0xFF, 100).
 INFO: Seed: 3724115580
 INFO: Loaded 1 modules   (105 inline 8-bit counters): 105 [0x562f6ee534c0, 0x562f6ee53529),
