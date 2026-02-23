@@ -97,7 +97,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size)
 
 ## Poc
 
-https://github.com/z1r00/fuzz_vuln/blob/main/yasm/stack-overflow/parse_expr1/id:000206%2Csig:06%2Csrc:007018%2B003531%2Cop:splice%2Crep:32
+https://github.com/nanhang-950/fuzz_vuln/blob/main/yasm/crash-1599e9fa41ec68c80230491902786bee889f5bcb
 
 ## ASAN Info
 
