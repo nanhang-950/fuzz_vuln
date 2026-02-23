@@ -1,0 +1,62 @@
+# Dictionary for vpx_y4m_fuzzer
+# Y4M format tokens
+
+# File header magic
+"YUV4MPEG2 "
+
+# Frame header magic
+"FRAME"
+
+# Common Y4M headers
+"YUV4MPEG2 W320 H240 F30:1 Ip A1:1 C420\n"
+"YUV4MPEG2 W640 H480 F25:1 Ip A1:1 C420jpeg\n"
+"YUV4MPEG2 W1280 H720 F24000:1001 Ip A1:1 C420\n"
+"YUV4MPEG2 W1920 H1080 F30000:1001 Ip A16:9 C420\n"
+
+# Colorspace identifiers
+"C420"
+"C420jpeg"
+"C420mpeg2"
+"C420paldv"
+"C422"
+"C444"
+"Cmono"
+"C420p10"
+"C422p10"
+"C444p10"
+
+# Interlacing modes
+"Ip"  # Progressive
+"It"  # Top field first
+"Ib"  # Bottom field first
+"Im"  # Mixed modes
+
+# Frame rate patterns
+"F24:1"
+"F25:1"
+"F30:1"
+"F24000:1001"  # 23.976 fps
+"F30000:1001"  # 29.97 fps
+"F60000:1001"  # 59.94 fps
+
+# Aspect ratios
+"A1:1"
+"A4:3"
+"A16:9"
+"A221:100"
+
+# Resolution patterns
+"W320 H240"
+"W640 H480"
+"W1280 H720"
+"W1920 H1080"
+"W3840 H2160"
+
+# Frame header
+"FRAME\n"
+"FRAME I\n"
+"FRAME P\n"
+
+# Newlines and spaces
+"\n"
+" "
