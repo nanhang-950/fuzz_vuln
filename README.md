@@ -10,7 +10,5 @@
 | [libwebp](https://github.com/webmproject/libwebp)            | 1        |      |
 | [OpenAPV](https://github.com/AcademySoftwareFoundation/openapv) | 1        |      |
 | [image](https://github.com/image-rs/image)                   | 1        |      |
-| [libyuv](https://chromium.googlesource.com/libyuv/libyuv)    |          |      |
-| [libavif](https://github.com/AOMediaCodec/libavif)           |          |      |
 | [shiva](https://github.com/igumnoff/shiva)                   | 4        |      |
 
