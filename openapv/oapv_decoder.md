@@ -8,27 +8,6 @@ version：v0.2.1.1
 
 OS：Ubuntu22.04 TLS
 
-Build: 
-
-```shell
-cmake -S . -B build-fuzz \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_C_COMPILER=clang \
-  -DOAPV_BUILD_FUZZER=ON \
-  -DOAPV_BUILD_APPS=OFF
-cmake --build build-fuzz -j
-
-mkdir -p corpus
-cp test/bitstream/*.apv corpus/
-
-./build-fuzz/bin/oapv_decoder_fuzzer corpus \
-  -artifact_prefix=./artifacts/ \
-  -max_total_time=300
-  
-./build-fuzz/bin/oapv_decoder_fuzzer corpus \
-  -jobs=4 -workers=4
-```
-
 ## fuzzer
 
 This directory provides a `libFuzzer` harness for the decoder path:
@@ -396,7 +375,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
 ## Poc
 
-https://github.com/nanhang-950/fuzz_vuln/blob/main/libvpx/fuzzers/crash-883ef121deb9e622bd4b1bfc5a7b634047492381
+https://github.com/nanhang-950/fuzz_vuln/blob/main/openapv/crash-86ab9b4c09bb4518c1728e0e721af889b7e2082d
 
 ## ASAN Info
 

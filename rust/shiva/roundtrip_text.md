@@ -1,73 +1,234 @@
+# Panic in `xml::Transformer::parse()` due to `Option::unwrap()` on malformed XML input
+
+## Bug Description
+
+While fuzzing the `shiva` crate (`github.com/igumnoff/shiva`) using `cargo-fuzz`, a runtime panic was triggered in:
+
 ```
-thread '<unnamed>' (13613) panicked at /mnt/h/Security/Binary/Project/shiva/lib/src/xml.rs:113:35:
+lib/src/xml.rs:113:35
+```
+
+The crash is caused by calling:
+
+```rust
+Option::unwrap()
+```
+
+on a `None` value inside:
+
+```
+shiva::xml::Transformer::parse()
+```
+
+This leads to an immediate abort under libFuzzer:
+
+```
 called `Option::unwrap()` on a `None` value
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-==13613== ERROR: libFuzzer: deadly signal
-    #0 0x5738aad3d3e1 in __sanitizer_print_stack_trace /rustc/llvm/src/llvm-project/compiler-rt/lib/asan/asan_stack.cpp:87:3
-    #1 0x5738ac602e4a in fuzzer::PrintStackTrace() /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libfuzzer-sys-0.4.12/libfuzzer/FuzzerUtil.cpp:210:5
-    #2 0x5738ac5d34c3 in fuzzer::Fuzzer::CrashCallback() /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libfuzzer-sys-0.4.12/libfuzzer/FuzzerLoop.cpp:231:3
-    #3 0x79225ec49def  (/lib/x86_64-linux-gnu/libc.so.6+0x3fdef) (BuildId: def5460e3cee00bfee25b429c97bcc4853e5b3a8)
-    #4 0x79225ec9e95b in __pthread_kill_implementation nptl/pthread_kill.c:43:17
-    #5 0x79225ec49cc1 in raise signal/../sysdeps/posix/raise.c:26:13
-    #6 0x79225ec324ab in abort stdlib/abort.c:73:3
-    #7 0x5738ac6303d9 in std::sys::pal::unix::abort_internal::hf5e36381f64f0a78 /rustc/6ba0ce40941eee1ca02e9ba49c791ada5158747a/library/std/src/sys/pal/unix/mod.rs:366:14
-    #8 0x5738ac6303c8 in std::process::abort::h49f9c39b5600dd95 /rustc/6ba0ce40941eee1ca02e9ba49c791ada5158747a/library/std/src/process.rs:2499:5
-    #9 0x5738ac5d12a4 in libfuzzer_sys::initialize::_$u7b$$u7b$closure$u7d$$u7d$::hdfab12933489121a /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libfuzzer-sys-0.4.12/src/lib.rs:94:9
-    #10 0x5738ac61d912 in _$LT$alloc..boxed..Box$LT$F$C$A$GT$$u20$as$u20$core..ops..function..Fn$LT$Args$GT$$GT$::call::hb662795a5a5f9b91 /rustc/6ba0ce40941eee1ca02e9ba49c791ada5158747a/library/alloc/src/boxed.rs:1999:9
-    #11 0x5738ac61d912 in std::panicking::panic_with_hook::hf343f38c566b7de3 /rustc/6ba0ce40941eee1ca02e9ba49c791ada5158747a/library/std/src/panicking.rs:842:13
-    #12 0x5738ac632935 in std::panicking::panic_handler::_$u7b$$u7b$closure$u7d$$u7d$::h5999c7a88a85d27c /rustc/6ba0ce40941eee1ca02e9ba49c791ada5158747a/library/std/src/panicking.rs:700:13
-    #13 0x5738ac6328c8 in std::sys::backtrace::__rust_end_short_backtrace::h66ef81f3bd341240 /rustc/6ba0ce40941eee1ca02e9ba49c791ada5158747a/library/std/src/sys/backtrace.rs:174:18
-    #14 0x5738ac61d18c in __rustc::rust_begin_unwind /rustc/6ba0ce40941eee1ca02e9ba49c791ada5158747a/library/std/src/panicking.rs:698:5
-    #15 0x5738ac65ca8f in core::panicking::panic_fmt::h5434febb0b631f9c /rustc/6ba0ce40941eee1ca02e9ba49c791ada5158747a/library/core/src/panicking.rs:75:14
-    #16 0x5738ac65c94b in core::panicking::panic::he71bac4cfb86ea9f /rustc/6ba0ce40941eee1ca02e9ba49c791ada5158747a/library/core/src/panicking.rs:145:5
-    #17 0x5738ac65ee48 in core::option::unwrap_failed::hd200657c7c758179 /rustc/6ba0ce40941eee1ca02e9ba49c791ada5158747a/library/core/src/option.rs:2130:5
-    #18 0x5738aaea30cf in unwrap<&shiva::xml::Node> /root/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/option.rs:1009:21
-    #19 0x5738aaea30cf in _$LT$shiva..xml..Transformer$u20$as$u20$shiva..core..TransformerTrait$GT$::parse::haeadaf56ab9164b1 /mnt/h/Security/Binary/Project/shiva/lib/src/xml.rs:113:35
-    #20 0x5738aae4a52d in shiva::core::Document::parse::hb8c0a146e16f31e9 /mnt/h/Security/Binary/Project/shiva/lib/src/core.rs:246:34
-    #21 0x5738aad65caf in roundtrip_text::_::__libfuzzer_sys_run::h4b492dc7f6c74199 /mnt/h/Security/Binary/Project/shiva/lib/fuzz/fuzz_targets/roundtrip_text.rs:25:27
-    #22 0x5738aad64128 in rust_fuzzer_test_input /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libfuzzer-sys-0.4.12/src/lib.rs:276:60
-    #23 0x5738ac5cfc25 in {closure#0} /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libfuzzer-sys-0.4.12/src/lib.rs:62:9
-    #24 0x5738ac5cfc25 in std::panicking::catch_unwind::do_call::h4d5fc7bfddb77e53 /root/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/panicking.rs:590:40
-    #25 0x5738ac5d1ad8 in __rust_try libfuzzer_sys.14efa759ce49c1ba-cgu.0
-    #26 0x5738ac5cf8fd in catch_unwind<i32, libfuzzer_sys::test_input_wrap::{closure_env#0}> /root/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/panicking.rs:553:19
-    #27 0x5738ac5cf8fd in catch_unwind<libfuzzer_sys::test_input_wrap::{closure_env#0}, i32> /root/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/panic.rs:359:14
-    #28 0x5738ac5cf8fd in LLVMFuzzerTestOneInput /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libfuzzer-sys-0.4.12/src/lib.rs:60:22
-    #29 0x5738ac5d50d8 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libfuzzer-sys-0.4.12/libfuzzer/FuzzerLoop.cpp:619:13
-    #30 0x5738ac5d4486 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long, bool, fuzzer::InputInfo*, bool, bool*) /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libfuzzer-sys-0.4.12/libfuzzer/FuzzerLoop.cpp:516:7
-    #31 0x5738ac5d603a in fuzzer::Fuzzer::MutateAndTestOne() /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libfuzzer-sys-0.4.12/libfuzzer/FuzzerLoop.cpp:765:19
-    #32 0x5738ac5d6dc5 in fuzzer::Fuzzer::Loop(std::vector<fuzzer::SizedFile, std::allocator<fuzzer::SizedFile>>&) /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libfuzzer-sys-0.4.12/libfuzzer/FuzzerLoop.cpp:910:5
-    #33 0x5738ac5e83f9 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libfuzzer-sys-0.4.12/libfuzzer/FuzzerDriver.cpp:923:6
-    #34 0x5738ac601ff2 in main /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libfuzzer-sys-0.4.12/libfuzzer/FuzzerMain.cpp:20:10
-    #35 0x79225ec33ca7 in __libc_start_call_main csu/../sysdeps/nptl/libc_start_call_main.h:58:16
-    #36 0x79225ec33d64 in __libc_start_main csu/../csu/libc-start.c:360:3
-    #37 0x5738aaca7370 in _start (/mnt/h/Security/Binary/Project/shiva/lib/fuzz/target/x86_64-unknown-linux-gnu/release/roundtrip_text+0x150d370) (BuildId: b04fcd3ef7f00be176c68efa8d85b64cea2eac1d)
+```
 
-NOTE: libFuzzer has rudimentary signal handlers.
-      Combine libFuzzer with AddressSanitizer or similar for better crash reports.
-SUMMARY: libFuzzer: deadly signal
-MS: 1 EraseBytes-; base unit: 48a9ae3ac4026299eefd078121a07d85453854b9
-artifact_prefix='/mnt/h/Security/Binary/Project/shiva/lib/fuzz/artifacts/roundtrip_text/'; Test unit written to /mnt/h/Security/Binary/Project/shiva/lib/fuzz/artifacts/roundtrip_text/crash-78ce7a4b03ac18b26e581d9a5b5351f98a39d254
+Stack trace excerpt:
 
-────────────────────────────────────────────────────────────────────────────────
+```
+#18 unwrap<&shiva::xml::Node>
+#19 shiva::xml::Transformer::parse
+    /lib/src/xml.rs:113:35
+#20 shiva::core::Document::parse
+    /lib/src/core.rs:246:34
+#21 roundtrip_text fuzz target
+    /lib/fuzz/fuzz_targets/roundtrip_text.rs:25:27
+```
 
-Failing input:
+The panic is reproducible via fuzzing malformed XML input.
 
-        artifacts/roundtrip_text/crash-78ce7a4b03ac18b26e581d9a5b5351f98a39d254
+------
 
-Output of `std::fmt::Debug`:
+## Steps to Reproduce
 
-        [5, 2, 60, 63, 120, 109, 108, 32, 118, 101, 114, 115, 105, 111, 110, 61, 34, 49, 46, 48, 34, 32, 101, 110, 99, 111, 100, 105, 110, 103, 61, 34, 85, 84, 70, 45, 56, 34, 63, 62, 10, 60, 68, 111, 99, 117, 109, 101, 110, 116, 62, 10, 32, 32, 32, 60, 101, 108, 101, 109, 101, 110, 116, 115, 62, 10, 32, 32, 32, 32, 32, 32, 60, 72, 101, 97, 100, 101, 114, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 108, 101, 118, 101, 108, 62, 49, 60, 47, 108, 101, 118, 101, 108, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 116, 101, 120, 116, 62, 49, 50, 51, 60, 47, 116, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 60, 47, 72, 101, 97, 100, 101, 114, 62, 10, 32, 32, 32, 32, 32, 32, 60, 80, 97, 114, 97, 103, 114, 97, 112, 104, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 101, 108, 101, 109, 101, 110, 116, 115, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 84, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 116, 101, 120, 116, 62, 72, 101, 108, 108, 111, 44, 32, 119, 111, 114, 108, 100, 33, 60, 47, 116, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 115, 105, 122, 101, 62, 49, 50, 60, 47, 115, 105, 122, 101, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 47, 84, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 73, 109, 97, 103, 101, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 116, 105, 116, 108, 101, 62, 83, 111, 109, 101, 32, 116, 105, 116, 108, 101, 60, 47, 116, 105, 116, 108, 101, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 97, 108, 116, 62, 83, 111, 109, 101, 32, 97, 108, 116, 60, 47, 97, 108, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 98, 121, 116, 101, 115, 62, 98, 97, 115, 101, 54, 52, 61, 61, 60, 47, 98, 121, 116, 101, 115, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 105, 109, 97, 103, 101, 95, 116, 121, 112, 101, 62, 80, 110, 103, 60, 47, 105, 109, 97, 103, 101, 95, 116, 121, 112, 101, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 119, 105, 100, 116, 104, 62, 49, 48, 48, 60, 47, 119, 105, 100, 116, 104, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 104, 101, 105, 103, 104, 116, 62, 49, 48, 48, 60, 47, 104, 101, 105, 103, 104, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 97, 108, 105, 103, 110, 62, 99, 101, 110, 116, 101, 114, 60, 47, 97, 108, 105, 103, 110, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 47, 73, 109, 97, 103, 101, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 72, 121, 112, 101, 114, 108, 105, 110, 107, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 117, 114, 108, 62, 104, 116, 116, 112, 58, 47, 47, 101, 120, 97, 109, 112, 108, 101, 46, 99, 111, 109, 60, 47, 117, 114, 108, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 116, 105, 116, 108, 101, 62, 69, 120, 97, 109, 112, 108, 101, 60, 47, 116, 105, 116, 108, 101, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 97, 108, 116, 62, 69, 120, 97, 109, 112, 108, 101, 32, 97, 108, 116, 60, 47, 97, 108, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 115, 105, 122, 101, 62, 49, 50, 60, 47, 115, 105, 122, 101, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 47, 72, 121, 112, 101, 114, 108, 105, 110, 107, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 47, 101, 108, 101, 109, 101, 110, 116, 115, 62, 10, 32, 32, 32, 32, 32, 32, 60, 47, 80, 97, 114, 97, 103, 114, 97, 112, 104, 62, 10, 32, 32, 32, 32, 32, 32, 60, 76, 105, 115, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 101, 108, 101, 109, 101, 110, 116, 115, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 76, 105, 115, 116, 73, 116, 101, 109, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 101, 108, 101, 109, 101, 110, 116, 115, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 84, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 116, 101, 120, 116, 62, 73, 116, 101, 109, 32, 49, 60, 47, 116, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 115, 105, 122, 101, 62, 49, 50, 60, 47, 115, 105, 122, 101, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 47, 84, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 47, 101, 108, 101, 109, 101, 110, 116, 115, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 47, 76, 105, 115, 116, 73, 116, 101, 109, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 76, 105, 115, 116, 73, 116, 101, 109, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 101, 108, 101, 109, 101, 110, 116, 115, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 84, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 116, 101, 120, 116, 62, 73, 116, 101, 109, 32, 50, 60, 47, 116, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 115, 105, 122, 101, 62, 49, 50, 60, 47, 115, 105, 122, 101, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 47, 84, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 47, 101, 108, 101, 109, 101, 110, 116, 115, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 47, 76, 105, 115, 116, 73, 116, 101, 109, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 76, 105, 115, 116, 73, 116, 101, 109, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 76, 105, 115, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 101, 108, 101, 109, 101, 110, 116, 115, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 76, 105, 115, 116, 73, 116, 101, 109, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 101, 108, 101, 109, 101, 110, 116, 115, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 84, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 116, 101, 120, 116, 62, 73, 116, 101, 109, 32, 50, 46, 49, 60, 47, 116, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 115, 105, 122, 101, 62, 49, 50, 60, 47, 115, 105, 122, 101, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 84, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 116, 101, 120, 116, 62, 50, 48, 48, 48, 36, 60, 47, 116, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 115, 105, 122, 101, 62, 49, 50, 60, 47, 115, 105, 122, 101, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 47, 84, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 47, 101, 108, 101, 109, 101, 110, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 47, 84, 97, 98, 108, 101, 67, 101, 108, 108, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 47, 99, 101, 108, 108, 115, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 47, 84, 97, 98, 108, 101, 82, 111, 119, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 84, 97, 98, 108, 101, 82, 111, 119, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 99, 101, 108, 108, 115, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 84, 97, 98, 108, 101, 67, 101, 108, 108, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 101, 108, 101, 109, 101, 110, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 84, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 116, 101, 120, 116, 62, 77, 97, 114, 114, 121, 32, 68, 111, 101, 60, 47, 116, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 115, 105, 122, 101, 62, 49, 50, 60, 47, 115, 105, 122, 101, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 47, 84, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 47, 101, 108, 101, 109, 101, 110, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 47, 84, 97, 98, 108, 101, 67, 101, 108, 108, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 84, 97, 98, 108, 101, 67, 101, 108, 108, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 101, 108, 101, 109, 101, 110, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 84, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 116, 101, 120, 116, 62, 49, 48, 48, 48, 36, 60, 47, 116, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 115, 105, 122, 101, 62, 49, 50, 60, 47, 115, 105, 122, 101, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 47, 84, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 47, 101, 108, 101, 109, 101, 110, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 47, 84, 97, 98, 108, 101, 67, 101, 108, 108, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 47, 99, 101, 108, 108, 115, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 47, 84, 97, 98, 108, 101, 82, 111, 119, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 47, 114, 111, 119, 115, 62, 10, 32, 32, 32, 32, 32, 32, 60, 47, 84, 97, 98, 108, 101, 62, 10, 32, 32, 32, 60, 47, 101, 108, 101, 109, 101, 110, 116, 115, 62, 10, 32, 32, 32, 60, 112, 97, 103, 101, 95, 119, 105, 100, 116, 104, 62, 50, 49, 48, 60, 47, 112, 97, 103, 101, 95, 119, 105, 100, 116, 104, 62, 10, 32, 32, 32, 60, 112, 97, 103, 101, 95, 104, 101, 105, 103, 104, 116, 62, 50, 57, 55, 60, 47, 112, 97, 103, 101, 95, 104, 101, 105, 103, 104, 116, 62, 10, 32, 32, 32, 60, 108, 101, 102, 116, 95, 112, 97, 103, 101, 95, 105, 110, 100, 101, 110, 116, 62, 49, 48, 60, 47, 108, 101, 102, 116, 95, 112, 97, 103, 101, 95, 105, 110, 100, 101, 110, 116, 62, 10, 32, 32, 32, 60, 114, 105, 103, 104, 116, 95, 112, 97, 103, 101, 95, 105, 110, 100, 101, 110, 116, 62, 49, 48, 60, 47, 114, 105, 103, 104, 116, 95, 112, 97, 103, 101, 95, 105, 110, 100, 101, 110, 116, 62, 10, 32, 32, 32, 60, 116, 111, 112, 95, 112, 97, 103, 101, 95, 105, 110, 100, 101, 110, 116, 62, 49, 48, 60, 47, 116, 111, 112, 95, 112, 97, 103, 101, 95, 105, 110, 100, 101, 110, 116, 62, 10, 32, 32, 32, 60, 98, 111, 116, 116, 111, 109, 95, 112, 97, 103, 101, 95, 105, 110, 100, 101, 110, 116, 62, 49, 48, 60, 47, 98, 111, 116, 116, 111, 109, 95, 112, 97, 103, 101, 95, 105, 110, 100, 101, 110, 116, 62, 10, 32, 32, 32, 60, 112, 97, 103, 101, 95, 104, 101, 97, 100, 101, 114, 62, 10, 32, 32, 32, 32, 32, 32, 60, 84, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 116, 101, 120, 116, 62, 80, 97, 103, 101, 32, 72, 101, 97, 100, 101, 114, 60, 47, 116, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 115, 105, 122, 101, 62, 49, 50, 60, 47, 115, 105, 122, 101, 62, 10, 32, 32, 32, 32, 32, 32, 60, 47, 84, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 60, 84, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 116, 101, 120, 116, 62, 104, 101, 97, 100, 101, 114, 32, 101, 110, 100, 60, 47, 116, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 115, 105, 122, 101, 62, 49, 50, 60, 47, 115, 105, 122, 101, 62, 10, 32, 32, 32, 32, 32, 32, 60, 47, 84, 101, 120, 116, 62, 10, 32, 32, 32, 60, 47, 112, 97, 103, 101, 95, 104, 101, 97, 100, 101, 114, 62, 10, 32, 32, 32, 60, 112, 97, 103, 101, 95, 102, 111, 111, 116, 101, 114, 62, 10, 32, 32, 32, 32, 32, 32, 60, 84, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 116, 101, 120, 116, 62, 80, 97, 103, 101, 32, 70, 111, 111, 116, 101, 114, 60, 47, 116, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 115, 105, 122, 101, 62, 49, 50, 60, 47, 115, 105, 122, 101, 62, 10, 32, 32, 32, 32, 32, 32, 60, 47, 84, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 60, 84, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 116, 101, 120, 116, 62, 102, 111, 111, 116, 101, 114, 32, 101, 110, 100, 60, 47, 116, 101, 120, 116, 62, 10, 32, 32, 32, 32, 32, 32, 32, 32, 32, 60, 115, 105, 122, 101, 62, 49, 50, 60, 47, 115, 105, 122, 101, 62, 10, 32, 32, 32, 32, 32, 32, 60, 47, 84, 101, 120, 116, 62, 10, 32, 32, 32, 60, 47, 112, 97, 103, 101, 95, 102, 111, 111, 116, 101, 114, 62, 10, 60, 47, 68, 111, 99, 117, 109, 101, 110, 116, 62, 10]
+### Install cargo-fuzz
 
-Reproduce with:
+```bash
+cargo install cargo-fuzz
+```
 
-        cargo fuzz run roundtrip_text artifacts/roundtrip_text/crash-78ce7a4b03ac18b26e581d9a5b5351f98a39d254
+### Run the existing fuzz target
 
-Minimize test case with:
+From `lib/`:
 
-        cargo fuzz tmin roundtrip_text artifacts/roundtrip_text/crash-78ce7a4b03ac18b26e581d9a5b5351f98a39d254
+```bash
+RUST_BACKTRACE=1 cargo fuzz run roundtrip_text
+```
 
-────────────────────────────────────────────────────────────────────────────────
+The crash occurs in:
 
-Error: Fuzz target exited with exit status: 77
+```
+fuzz/fuzz_targets/roundtrip_text.rs
+```
+
+------
+
+## Observed Panic
+
+```
+thread '<unnamed>' panicked at lib/src/xml.rs:113:35:
+called `Option::unwrap()` on a `None` value
+```
+
+Followed by libFuzzer abort:
+
+```
+==11802== ERROR: libFuzzer: deadly signal
+```
+
+------
+
+## Root Cause Analysis
+
+Inside `xml.rs` at line 113, the code performs:
+
+```rust
+some_option.unwrap()
+```
+
+The fuzzed input produces an invalid or incomplete XML structure where:
+
+- A required node is missing
+- A parent/child relationship assumption fails
+- A lookup returns `None`
+
+Because `.unwrap()` is used instead of proper error handling, malformed input causes a panic instead of returning an error.
+
+This violates a fundamental robustness invariant:
+
+> Parsing untrusted input must never panic.
+
+Given this is a document parser, all malformed input should result in a structured error (`Result::Err`) rather than process termination.
+
+------
+
+## Why This Is a Problem
+
+- Panics in parsing logic are denial-of-service vectors
+- Fuzzing easily discovers these paths
+- The crate may be used in server-side or automated processing pipelines
+- `unwrap()` in parser logic is generally unsafe for public-facing APIs
+
+------
+
+## Expected Behavior
+
+Malformed XML input should:
+
+- Return `Err(ParseError)`
+- Or gracefully reject invalid structure
+- Never trigger `panic!`
+
+------
+
+## Suggested Fixes
+
+### Option A: Replace `unwrap()` with proper error propagation
+
+Instead of:
+
+```rust
+let node = maybe_node.unwrap();
+```
+
+Use:
+
+```rust
+let node = maybe_node.ok_or(ParseError::InvalidStructure)?;
+```
+
+or:
+
+```rust
+let node = match maybe_node {
+    Some(n) => n,
+    None => return Err(ParseError::InvalidStructure),
+};
+```
+
+------
+
+### Option B: Add structural validation before transformation
+
+If `Transformer::parse()` assumes invariants, validate them explicitly:
+
+```rust
+if maybe_node.is_none() {
+    return Err(ParseError::MissingNode);
+}
+```
+
+------
+
+### Option C: Add fuzz regression test
+
+Preserve the crashing input in:
+
+```
+fuzz/corpus/roundtrip_text/
+```
+
+to prevent regressions.
+
+------
+
+## Minimal Defensive Patch Example
+
+```rust
+// Before
+let node = something.unwrap();
+
+// After
+let node = something.ok_or(ParseError::InvalidXml)?;
+```
+
+------
+
+## Environment
+
+- Crate: github.com/igumnoff/shiva
+- Platform: Ubuntu 22.04
+- Rust: rustc 1.91.0-nightly
+- Fuzzing: cargo-fuzz
+
+```
+00000000: 0574 0a                                  .t.
+```
+
+```
+#![no_main]
+
+use libfuzzer_sys::fuzz_target;
+use shiva::core::{Document, DocumentType};
+
+fuzz_target!(|data: &[u8]| {
+    if data.len() < 3 {
+        return;
+    }
+
+    const TEXT_TYPES: [DocumentType; 7] = [
+        DocumentType::Markdown,
+        DocumentType::HTML,
+        DocumentType::Text,
+        DocumentType::Json,
+        DocumentType::CSV,
+        DocumentType::XML,
+        DocumentType::RTF,
+    ];
+
+    let parse_ty = TEXT_TYPES[(data[0] as usize) % TEXT_TYPES.len()];
+    let generate_ty = TEXT_TYPES[(data[1] as usize) % TEXT_TYPES.len()];
+    let input = data[2..].to_vec().into();
+
+    if let Ok(document) = Document::parse(&input, parse_ty) {
+        if let Ok(output) = document.generate(generate_ty) {
+            let _ = Document::parse(&output, generate_ty);
+        }
+    }
+});
+
 ```
 

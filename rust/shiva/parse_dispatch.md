@@ -1,4 +1,6 @@
+## 项目信息
 
+minimized-from-8fc663747f7f40d05af59309b0dee008163fb838
 
 ```
 thread '<unnamed>' (11687) panicked at /mnt/h/Security/Binary/Project/shiva/lib/src/xml.rs:113:35:
@@ -69,3 +71,9 @@ Minimize test case with:
         cargo fuzz tmin parse_dispatch artifacts/parse_dispatch/crash-b937066032e6f3d44184b8b9317cff27f94d5f08
 ```
 
+## Environment
+
+- Module: `github.com/image-rs/image`
+- Platform: Ubuntu 22.04
+- Rustc version: 1.91.0
+- Fuzzing: `cargo-fuzz`
