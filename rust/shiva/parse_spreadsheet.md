@@ -1,4 +1,108 @@
- cargo fuzz run parse_spreadsheet artifacts/parse_spreadsheet/minimized-from-ba4bb8ff7a4e7731ab3440a2fc843f22bbf253da
+# Panic in `xls::Transformer::parse()` Due to `Result::expect()` on Malformed Spreadsheet Input
+
+## Bug Description
+
+While fuzzing the `shiva` repository (`github.com/igumnoff/shiva`) using `cargo-fuzz`, a runtime panic was triggered at:
+
+```
+lib/src/xls.rs:18:43
+```
+
+The crash occurs inside:
+
+```
+shiva::xls::Transformer::parse()
+```
+
+where `Result::expect()` is invoked on an `Err` value returned from the XLS parser:
+
+```
+Cannot open xls file from bytes: Cfb(Io(Error { kind: UnexpectedEof, message: "failed to fill whole buffer" }))
+```
+
+This immediately aborts execution under libFuzzer:
+
+```
+==10899== ERROR: libFuzzer: deadly signal
+```
+
+### Stack Trace Excerpt
+
+```
+thread '<unnamed>' (10899) panicked at /mnt/h/Security/Binary/Project/shiva/lib/src/xls.rs:18:43:
+Cannot open xls file from bytes: Cfb(Io(Error { kind: UnexpectedEof, message: "failed to fill whole buffer" }))
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+==10899== ERROR: libFuzzer: deadly signal
+...
+#16 core::result::unwrap_failed
+#17 expect<calamine::xls::Xls<...>, calamine::xls::XlsError>
+#18 shiva::xls::Transformer::parse
+    /mnt/h/Security/Binary/Project/shiva/lib/src/xls.rs:18:43
+#19 shiva::core::Document::parse
+    /mnt/h/Security/Binary/Project/shiva/lib/src/core.rs:250:34
+#20 parse_spreadsheet fuzz target
+    /mnt/h/Security/Binary/Project/shiva/lib/fuzz/fuzz_targets/parse_spreadsheet.rs:17:27
+...
+```
+
+The panic is reliably reproducible with malformed spreadsheet input during fuzzing.
+
+------
+
+## Steps to Reproduce
+
+### Install cargo-fuzz
+
+```bash
+cargo install cargo-fuzz
+```
+
+### Crashing Input
+
+```
+00000000: 00ff                                     ..
+```
+
+### Fuzzer Target
+
+```rust
+#![no_main]
+
+use libfuzzer_sys::fuzz_target;
+use shiva::core::{Document, DocumentType};
+
+fuzz_target!(|data: &[u8]| {
+    if data.len() < 2 {
+        return;
+    }
+
+    const SHEET_TYPES: [DocumentType; 3] =
+        [DocumentType::XLS, DocumentType::XLSX, DocumentType::ODS];
+
+    let parse_ty = SHEET_TYPES[(data[0] as usize) % SHEET_TYPES.len()];
+    let input = data[1..].to_vec().into();
+
+    if let Ok(document) = Document::parse(&input, parse_ty) {
+        if parse_ty != DocumentType::XLS {
+            let _ = document.generate(parse_ty);
+        }
+    }
+});
+```
+
+### Run the Fuzz Target
+
+From the `lib/` directory:
+
+```bash
+RUST_BACKTRACE=1 cargo fuzz run parse_spreadsheet
+```
+
+(Or the fuzz target name used in your stack trace: `fuzz_targets/parse_spreadsheet.rs`.)
+
+------
+
+## Observed Panic
 
 ```
 thread '<unnamed>' (10899) panicked at /mnt/h/Security/Binary/Project/shiva/lib/src/xls.rs:18:43:
@@ -42,3 +146,110 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
     #34 0x598bfe79d110 in _start (/mnt/h/Security/Binary/Project/shiva/lib/fuzz/target/x86_64-unknown-linux-gnu/release/parse_spreadsheet+0x150d110) (BuildId: a8dd7c5f16e6e39fd406c21defd7e81b2cfc33fb)
 ```
 
+------
+
+## Root Cause Analysis
+
+At line 18 in `lib/src/xls.rs`, the XLS transformer attempts to open an XLS document from raw bytes using an API that returns `Result<T, E>`. When the fuzzed input is too short or malformed, the underlying library returns an error such as:
+
+- `UnexpectedEof` / “failed to fill whole buffer”
+- container parsing failures (e.g., CFB/OLE structure truncated)
+
+Instead of propagating this error upward, the code calls `.expect(...)`, which **panics on any `Err`**, terminating the process.
+
+This violates a fundamental robustness invariant:
+
+> Parsing untrusted input must never panic.
+
+A document parser should return a structured error (`Result::Err`) for invalid input, not abort the process.
+
+------
+
+## Why This Is a Problem
+
+- Panics in parsing logic can be denial-of-service (DoS) vectors
+- Fuzzing easily discovers these failure paths
+- The crate may be used in server-side or automated processing pipelines
+- Using `.expect()` / `.unwrap()` in public-facing parsing code is generally unsafe
+
+------
+
+## Expected Behavior
+
+Malformed spreadsheet input (XLS/XLSX/ODS) should:
+
+- Return `Err(ParseError)` (or the crate’s existing error type)
+- Gracefully reject invalid/truncated files
+- Never trigger a `panic!`
+
+------
+
+## Suggested Fixes
+
+### Option A: Replace `expect()` with Proper Error Propagation
+
+Instead of (conceptually):
+
+```rust
+let workbook = open_from_bytes(input).expect("Cannot open xls file from bytes: ...");
+```
+
+Use error propagation:
+
+```rust
+let workbook = open_from_bytes(input)
+    .map_err(|e| ParseError::InvalidStructure(format!("Cannot open xls file: {e}")))?;
+```
+
+Or:
+
+```rust
+let workbook = match open_from_bytes(input) {
+    Ok(wb) => wb,
+    Err(e) => return Err(ParseError::InvalidStructure(format!("Cannot open xls file: {e}"))),
+};
+```
+
+### Option B: Treat Truncated/Invalid Files as Normal Parse Failures
+
+If the transformer expects a minimum length or header, validate before calling the underlying parser:
+
+```rust
+if input.len() < MIN_XLS_SIZE {
+    return Err(ParseError::InvalidStructure("XLS input too short".into()));
+}
+```
+
+(Still keep `Result` propagation—size checks alone won’t cover all malformed cases.)
+
+### Option C: Add Fuzz Regression Test
+
+Preserve the crashing input in an appropriate corpus directory, e.g.:
+
+```
+fuzz/corpus/parse_spreadsheet/
+```
+
+so future changes don’t reintroduce the panic.
+
+------
+
+## Minimal Defensive Patch Example
+
+```rust
+// Before
+let wb = calamine_open(...).expect("Cannot open xls file from bytes");
+
+// After
+let wb = calamine_open(...)
+    .map_err(|e| ParseError::InvalidSpreadsheet(format!("{e}")))?;
+```
+
+------
+
+## Environment
+
+- Crate: github.com/igumnoff/shiva
+- Platform: Ubuntu 22.04
+- Rust: rustc 1.91.0-nightly
+- Fuzzing tool: cargo-fuzz
