@@ -30,16 +30,16 @@ make -j$(nproc)
 
 ## fuzzer
 
-**目标**: Y4M (YUV4MPEG2) 格式解析
+**Objective**: Y4M (YUV4MPEG2) Format Parsing
 
-**测试内容**:
+**Test Content**:
 
-- Y4M 文件头解析
-- 帧头解析
-- 色彩空间参数
-- 交错模式
-- 帧率和宽高比
-- 畸形头部处理
+- Y4M file header parsing
+- Frame header parsing
+- Color space parameters
+- Interlacing modes
+- Frame rate and aspect ratio
+- Malformed header handling
 
 ```c
 /*
@@ -266,6 +266,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     if (size < 32) {
         return 0;
     }
+    const uint8_t *const input_start = data;
+    const size_t input_size = size;
 
     // Parse file header
     y4m_info_t info;
@@ -327,16 +329,21 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     // Test edge cases
     
     // 1. Malformed header with extreme values
-    if (size > 100) {
+    if (size > 100 && (size_t)(data - input_start) >= file_header_len) {
         y4m_info_t test_info;
         size_t test_len;
-        parse_y4m_header(data - file_header_len, 100, &test_info, &test_len);
+        const uint8_t *header_start = data - file_header_len;
+        const size_t available = input_size - (size_t)(header_start - input_start);
+        const size_t parse_size = (available < 100) ? available : 100;
+        if (parse_size >= strlen(Y4M_MAGIC)) {
+            parse_y4m_header(header_start, parse_size, &test_info, &test_len);
+        }
     }
 
     // 2. Missing frame headers
-    if (frame_count > 0) {
+    if (frame_count > 0 && frame_data_size > 0 &&
+        (size_t)(data - input_start) >= frame_data_size) {
         const uint8_t *test_data = data - frame_data_size;
-        size_t test_size = frame_data_size;
         volatile uint8_t dummy = test_data[0];
         (void)dummy;
     }

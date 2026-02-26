@@ -97,31 +97,66 @@ https://github.com/nanhang-950/fuzz_vuln/blob/main/yasm/crash-9842926af7ca0a8cca
 ```
 ❯ ./fuzz_nasm_readnum ./crash-9842926af7ca0a8cca12604f945414f07b01e13d
 INFO: Running with entropic power schedule (0xFF, 100).
-INFO: Seed: 2356677816
-INFO: Loaded 1 modules   (4007 inline 8-bit counters): 4007 [0x5fd350, 0x5fe2f7),
-INFO: Loaded 1 PC tables (4007 PCs): 4007 [0x5b8ba0,0x5c8610),
+INFO: Seed: 4047307543
+INFO: Loaded 1 modules   (69 inline 8-bit counters): 69 [0x57afc6cf6f48, 0x57afc6cf6f8d),
+INFO: Loaded 1 PC tables (69 PCs): 69 [0x57afc6cf6f90,0x57afc6cf73e0),
 ./fuzz_nasm_readnum: Running 1 inputs 1 time(s) each.
 Running: ./crash-9842926af7ca0a8cca12604f945414f07b01e13d
-==8133==AddressSanitizer CHECK failed: compiler-rt/lib/sanitizer_common/sanitizer_linux_libcdep.cpp:556 "((*tls_addr + *tls_size)) <= ((*stk_addr + *stk_size))" (0x7fd9649fa080, 0x7fd9649fa000)
 =================================================================
-==8133==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x6020000000af at pc 0x000000596a33 bp 0x7ffcb506b490 sp 0x7ffcb506b488
-READ of size 1 at 0x6020000000af thread T0
-    #0 0x4d6b9e in __asan::AsanCheckFailed(char const*, int, char const*, unsigned long long, unsigned long long) (/mnt/h/Security/Binary/Reports/fuzz_vuln/yasm/fuzz_nasm_readnum+0x4d6b9e)
-    #0 0x596a32 in nasm_readnum (/mnt/h/Security/Binary/Reports/fuzz_vuln/yasm/fuzz_nasm_readnum+0x596a32)
-    #1 0x4eb38f in __sanitizer::CheckFailed(char const*, int, char const*, unsigned long long, unsigned long long) (/mnt/h/Security/Binary/Reports/fuzz_vuln/yasm/fuzz_nasm_readnum+0x4eb38f)
-    #1 0x598728 in LLVMFuzzerTestOneInput (/mnt/h/Security/Binary/Reports/fuzz_vuln/yasm/fuzz_nasm_readnum+0x598728)
-    #2 0x4ec220 in __sanitizer::GetThreadStackAndTls(bool, unsigned long*, unsigned long*, unsigned long*, unsigned long*) (/mnt/h/Security/Binary/Reports/fuzz_vuln/yasm/fuzz_nasm_readnum+0x4ec220)
-    #2 0x43a7b3 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) (/mnt/h/Security/Binary/Reports/fuzz_vuln/yasm/fuzz_nasm_readnum+0x43a7b3)
-    #3 0x4d9abd in __asan::AsanThread::SetThreadStackAndTls(__asan::AsanThread::InitOptions const*) (/mnt/h/Security/Binary/Reports/fuzz_vuln/yasm/fuzz_nasm_readnum+0x4d9abd)
-    #3 0x42462e in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) (/mnt/h/Security/Binary/Reports/fuzz_vuln/yasm/fuzz_nasm_readnum+0x42462e)
-    #4 0x4d9690 in __asan::AsanThread::Init(__asan::AsanThread::InitOptions const*) (/mnt/h/Security/Binary/Reports/fuzz_vuln/yasm/fuzz_nasm_readnum+0x4d9690)
-    #4 0x42a3d6 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) (/mnt/h/Security/Binary/Reports/fuzz_vuln/yasm/fuzz_nasm_readnum+0x42a3d6)
-    #5 0x4d9bb1 in __asan::AsanThread::ThreadStart(unsigned long long) (/mnt/h/Security/Binary/Reports/fuzz_vuln/yasm/fuzz_nasm_readnum+0x4d9bb1)
-    #5 0x453b72 in main (/mnt/h/Security/Binary/Reports/fuzz_vuln/yasm/fuzz_nasm_readnum+0x453b72)
-    #6 0x7fd96977fb7a in start_thread nptl/./nptl/pthread_create.c:448:8
-    #6 0x7fd969716ca7 in __libc_start_call_main csu/../sysdeps/nptl/libc_start_call_main.h:58:16
-    #7 0x7fd9697fd7b7 in __GI___clone3 misc/../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+==10921==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x50200000008f at pc 0x57afc6c9f7a7 bp 0x7ffeeaf9b3d0 sp 0x7ffeeaf9b3c8
+READ of size 1 at 0x50200000008f thread T0
+    #0 0x57afc6c9f7a6 in nasm_readnum /mnt/h/Security/Binary/Project/yasm/modules/preprocs/nasm/nasmlib.c:56:14
+    #1 0x57afc6c9ef8a in LLVMFuzzerTestOneInput /mnt/h/Security/Binary/Project/yasm/fuzzer/fuzz_nasm_readnum.c:56:25
+    #2 0x57afc6ba350a in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) (/mnt/h/Security/Binary/Reports/fuzz_vuln/yasm/fuzz_nasm_readnum+0x4f50a) (BuildId: d2095e9107efcb8bc5dd8bc1958e972df71d6494)
+    #3 0x57afc6b8b403 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) (/mnt/h/Security/Binary/Reports/fuzz_vuln/yasm/fuzz_nasm_readnum+0x37403) (BuildId: d2095e9107efcb8bc5dd8bc1958e972df71d6494)
+    #4 0x57afc6b91541 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) (/mnt/h/Security/Binary/Reports/fuzz_vuln/yasm/fuzz_nasm_readnum+0x3d541) (BuildId: d2095e9107efcb8bc5dd8bc1958e972df71d6494)
+    #5 0x57afc6bbd9f6 in main (/mnt/h/Security/Binary/Reports/fuzz_vuln/yasm/fuzz_nasm_readnum+0x699f6) (BuildId: d2095e9107efcb8bc5dd8bc1958e972df71d6494)
+    #6 0x7c39dc033ca7 in __libc_start_call_main csu/../sysdeps/nptl/libc_start_call_main.h:58:16
+    #7 0x7c39dc033d64 in __libc_start_main csu/../csu/libc-start.c:360:3
+    #8 0x57afc6b859f0 in _start (/mnt/h/Security/Binary/Reports/fuzz_vuln/yasm/fuzz_nasm_readnum+0x319f0) (BuildId: d2095e9107efcb8bc5dd8bc1958e972df71d6494)
 
-    #7 0x7fd969716d64 in __libc_start_main csu/../csu/libc-start.c:360:3
+0x50200000008f is located 1 bytes before 2-byte region [0x502000000090,0x502000000092)
+allocated by thread T0 here:
+    #0 0x57afc6c5d763 in malloc (/mnt/h/Security/Binary/Reports/fuzz_vuln/yasm/fuzz_nasm_readnum+0x109763) (BuildId: d2095e9107efcb8bc5dd8bc1958e972df71d6494)
+    #1 0x57afc6c9ef35 in LLVMFuzzerTestOneInput /mnt/h/Security/Binary/Project/yasm/fuzzer/fuzz_nasm_readnum.c:49:25
+    #2 0x57afc6ba350a in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) (/mnt/h/Security/Binary/Reports/fuzz_vuln/yasm/fuzz_nasm_readnum+0x4f50a) (BuildId: d2095e9107efcb8bc5dd8bc1958e972df71d6494)
+    #3 0x57afc6b8b403 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) (/mnt/h/Security/Binary/Reports/fuzz_vuln/yasm/fuzz_nasm_readnum+0x37403) (BuildId: d2095e9107efcb8bc5dd8bc1958e972df71d6494)
+    #4 0x57afc6b91541 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) (/mnt/h/Security/Binary/Reports/fuzz_vuln/yasm/fuzz_nasm_readnum+0x3d541) (BuildId: d2095e9107efcb8bc5dd8bc1958e972df71d6494)
+    #5 0x57afc6bbd9f6 in main (/mnt/h/Security/Binary/Reports/fuzz_vuln/yasm/fuzz_nasm_readnum+0x699f6) (BuildId: d2095e9107efcb8bc5dd8bc1958e972df71d6494)
+    #6 0x7c39dc033ca7 in __libc_start_call_main csu/../sysdeps/nptl/libc_start_call_main.h:58:16
+
+SUMMARY: AddressSanitizer: heap-buffer-overflow /mnt/h/Security/Binary/Project/yasm/modules/preprocs/nasm/nasmlib.c:56:14 in nasm_readnum
+Shadow bytes around the buggy address:
+  0x501ffffffe00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x501ffffffe80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x501fffffff00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x501fffffff80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x502000000000: fa fa 00 00 fa fa 00 00 fa fa 01 fa fa fa 01 fa
+=>0x502000000080: fa[fa]02 fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000000100: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000000180: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000000200: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000000280: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x502000000300: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==10921==ABORTING
 ```
 

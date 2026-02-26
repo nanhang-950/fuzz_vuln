@@ -30,21 +30,21 @@ make -j$(nproc)
 
 ## fuzzer
 
-**目标**: 图像格式转换和处理
+**Objective**: Image Format Conversion and Processing
 
-**测试内容**:
+**Test Content**:
 
-- 各种像素格式 (I420, I422, I444, NV12, YV12)
-- 高位深度格式 (10-bit, 12-bit)
-- 色彩空间转换 (BT.601, BT.709, BT.2020)
-- 图像分配和包装
-- 显示矩形设置
-- 图像翻转操作
+- Various pixel formats (I420, I422, I444, NV12, YV12)
+- High bit-depth formats (10-bit, 12-bit)
+- Color space conversion (BT.601, BT.709, BT.2020)
+- Image allocation and wrapping
+- Display rectangle configuration
+- Image flip operations
 
-**输入格式**: 
+**Input Format**:
 
-- 前 32 字节: 配置头
-- 剩余数据: YUV 像素数据
+- First 32 bytes: configuration header
+- Remaining data: YUV pixel data
 
 ```c
 /*
@@ -250,7 +250,10 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
                 
                 for (unsigned int y = 0; y < h; y++) {
                     // Just touch the memory to trigger any issues
-                    volatile uint8_t dummy = img->planes[plane][y * img->stride[plane]];
+                    unsigned char *row =
+                        img->planes[plane] +
+                        (ptrdiff_t)y * (ptrdiff_t)img->stride[plane];
+                    volatile uint8_t dummy = row[0];
                     (void)dummy;
                 }
             }
@@ -261,7 +264,13 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     // Test 6: Test wrapping external buffer
     if (config->operations & 0x04) {
         // Allocate a buffer
-        size_t buffer_size = width * height * 2; // Enough for most formats
+        size_t pixels = (size_t)width * (size_t)height;
+        if (pixels > SIZE_MAX / 8) {
+            vpx_img_free(img);
+            return 0;
+        }
+        // Use a larger upper bound to avoid wrap metadata pointing past the end.
+        size_t buffer_size = pixels * 8 + align;
         uint8_t *buffer = (uint8_t *)malloc(buffer_size);
         if (buffer) {
             vpx_image_t wrapped_img;
@@ -269,10 +278,15 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
                                                      width, height, 1, buffer);
             if (wrap_result) {
                 // Touch the wrapped image
+                uintptr_t base = (uintptr_t)buffer;
+                uintptr_t end = base + buffer_size;
                 for (int plane = 0; plane < 3; plane++) {
                     if (wrap_result->planes[plane]) {
-                        volatile uint8_t dummy = wrap_result->planes[plane][0];
-                        (void)dummy;
+                        uintptr_t p = (uintptr_t)wrap_result->planes[plane];
+                        if (p >= base && p < end) {
+                            volatile uint8_t dummy = wrap_result->planes[plane][0];
+                            (void)dummy;
+                        }
                     }
                 }
             }
@@ -296,6 +310,9 @@ https://github.com/nanhang-950/fuzz_vuln/blob/main/libvpx/fuzzers/crash-883ef121
 ## ASAN Info
 
 ```shell
+❯ ./vpx_codec_control_fuzzer_vp8 ./crash-d3a1ed54d420320f1049ec89a1cd4e850b4f7142
+❯ ./vpx_codec_control_fuzzer_vp9 ./crash-33724cd6b286c15eb766589eeaaea79e90ff0691
+❯ ./vpx_y4m_fuzzer ./crash-a8816fc673feac79c1d9a04fc160c46c5865396c
 ❯ ./vpx_image_fuzzer ./crash-883ef121deb9e622bd4b1bfc5a7b634047492381
 INFO: Running with entropic power schedule (0xFF, 100).
 INFO: Seed: 728820164

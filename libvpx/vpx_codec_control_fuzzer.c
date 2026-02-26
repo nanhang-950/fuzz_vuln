@@ -87,8 +87,6 @@ static const int decoder_control_ids[] = {
 #else
 static const int decoder_control_ids[] = {
     VP8_SET_POSTPROC,
-    VP8_SET_REFERENCE,
-    VP8_COPY_REFERENCE,
 };
 #endif
 
@@ -198,49 +196,43 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         size_t num_controls = sizeof(decoder_control_ids) / sizeof(decoder_control_ids[0]);
         int control_id = decoder_control_ids[fuzz->control_id_idx % num_controls];
 
-        // Try different parameter types
-        switch (fuzz->param_type % 6) {
-            case 0: // Integer parameter
-                vpx_codec_control_(&decoder, control_id, fuzz->int_param);
-                break;
-            
-            case 1: // Boolean
-                vpx_codec_control_(&decoder, control_id, fuzz->uint_param & 1);
-                break;
-            
-            case 2: // Small integer
-                vpx_codec_control_(&decoder, control_id, fuzz->uint_param % 16);
-                break;
-            
-            case 3: // VP8 postproc config
-                if (control_id == VP8_SET_POSTPROC) {
-                    vp8_postproc_cfg_t pp;
-                    pp.post_proc_flag = fuzz->struct_data[0];
-                    pp.deblocking_level = fuzz->struct_data[1] % 16;
-                    pp.noise_level = fuzz->struct_data[2] % 16;
-                    vpx_codec_control_(&decoder, control_id, &pp);
-                }
-                break;
-            
-            case 4: // Integer (e.g. VP9_SET_BYTE_ALIGNMENT, VP9D_SET_ROW_MT)
-                vpx_codec_control_(&decoder, control_id, (int)(fuzz->uint_param % 1024));
-                break;
-            
-            case 5: // Zero
-                vpx_codec_control_(&decoder, control_id, 0);
-                break;
+        // Use control-specific parameter types to avoid varargs type mismatch.
+        if (control_id == VP8_SET_POSTPROC) {
+            vp8_postproc_cfg_t pp;
+            pp.post_proc_flag = fuzz->struct_data[0];
+            pp.deblocking_level = fuzz->struct_data[1] % 16;
+            pp.noise_level = fuzz->struct_data[2] % 16;
+            vpx_codec_control_(&decoder, control_id, &pp);
+        } else {
+            switch (fuzz->param_type % 5) {
+                case 0: // Integer parameter
+                    vpx_codec_control_(&decoder, control_id, fuzz->int_param);
+                    break;
+                
+                case 1: // Boolean
+                    vpx_codec_control_(&decoder, control_id, fuzz->uint_param & 1);
+                    break;
+                
+                case 2: // Small integer
+                    vpx_codec_control_(&decoder, control_id, fuzz->uint_param % 16);
+                    break;
+                
+                case 3: // Integer (e.g. VP9_SET_BYTE_ALIGNMENT, VP9D_SET_ROW_MT)
+                    vpx_codec_control_(&decoder, control_id, (int)(fuzz->uint_param % 1024));
+                    break;
+                
+                case 4: // Zero
+                    vpx_codec_control_(&decoder, control_id, 0);
+                    break;
+            }
         }
 
         // Try invalid control IDs
         if (fuzz->param_type & 0x80) {
-            // Random control ID
-            vpx_codec_control_(&decoder, fuzz->int_param, fuzz->uint_param);
-            
-            // Very large control ID
+            // Use out-of-range control IDs with integer payloads.
+            vpx_codec_control_(&decoder, 0x7ffff000, 0);
             vpx_codec_control_(&decoder, INT32_MAX, 0);
-            
-            // Negative control ID
-            vpx_codec_control_(&decoder, -1, 0);
+            vpx_codec_control_(&decoder, INT32_MIN, 0);
         }
 
         vpx_codec_destroy(&decoder);
