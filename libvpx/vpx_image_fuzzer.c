@@ -192,6 +192,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         if (img2) {
             // Simulate format conversion by copying data
             for (int plane = 0; plane < 3; plane++) {
+                // NV12 has Y and interleaved UV only; V is an alias.
+                if (fmt == VPX_IMG_FMT_NV12 && plane > 1) break;
                 if (!img->planes[plane] || !img2->planes[plane]) continue;
                 
                 unsigned int h = img->d_h;
